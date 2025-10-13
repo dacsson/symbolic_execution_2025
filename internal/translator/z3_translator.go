@@ -307,6 +307,27 @@ func (zt *Z3Translator) VisitUnaryOperation(expr *symbolic.UnaryOperation) inter
 	panic("unreachable")
 }
 
+func (zt *Z3Translator) VisitArrayAccess(expr *symbolic.ArrayAccess) interface{} {
+	arr := expr.Array.Accept(zt).(z3.Array)
+	i := expr.Index.Accept(zt).(z3.Int) // TODO: can it be a non int value?
+	return arr.Select(i)
+}
+
+func (zt *Z3Translator) VisitConditional(expr *symbolic.ConditionalOperation) interface{} {
+	cond := expr.Condition.Accept(zt).(z3.Bool)
+	btrue := expr.TrueBlock[0].Accept(zt).(z3.Value)
+	for _, block := range expr.TrueBlock[1:] {
+		btrue = block.Accept(zt).(z3.Value)
+	}
+
+	bfalse := expr.FalseBlock[0].Accept(zt).(z3.Value)
+	for _, block := range expr.FalseBlock[1:] {
+		bfalse = block.Accept(zt).(z3.Value)
+	}
+
+	return cond.IfThenElse(btrue, bfalse)
+}
+
 // Вспомогательные методы
 
 func (zt *Z3Translator) createZ3Array(name string, expr symbolic.SymbolicArray) z3.Value {

@@ -10,5 +10,7 @@ type Visitor interface {
 	VisitLogicalOperation(expr *LogicalOperation) interface{}
 	VisitArray(expr *SymbolicArray) interface{}
 	VisitUnaryOperation(expr *UnaryOperation) interface{}
+	VisitArrayAccess(expr *ArrayAccess) interface{}
+	VisitConditional(expr *ConditionalOperation) interface{}
 	// TODO: Добавьте методы для других типов выражений по мере необходимости
 }

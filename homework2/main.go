@@ -51,12 +51,79 @@ func main() {
 	if err != nil {
 		log.Fatalf("Ошибка трансляции сложного выражения: %v", err)
 	}
-
-	/*
-		func add(a, b int) int {
-			return a + b
-		}
-	*/
-
 	fmt.Printf("Сложное Z3 выражение создано: %T\n", z3AndExpr)
+
+	// Test1
+	test1 := `
+func add(a, b int) int {
+	return a + b
+}
+`
+
+	fmt.Printf("#=== TEST1 ===\n")
+	fmt.Println(test1)
+
+	a := symbolic.NewSymbolicVariable("a", symbolic.IntType)
+	b := symbolic.NewSymbolicVariable("b", symbolic.IntType)
+	addition := symbolic.NewBinaryOperation(a, b, symbolic.ADD)
+	fmt.Printf("SMT: %s\n", addition.String())
+
+	z3Test1Expr, err := translator.TranslateExpression(addition)
+	if err != nil {
+		log.Fatalf("Ошибка трансляции сложного выражения: %v", err)
+	}
+	fmt.Printf("Result: %T\n", z3Test1Expr)
+
+	// TEST2
+	test2 := `
+func max(a, b int) int {
+	if a > b {
+		return a
+	}
+	return b
+}
+`
+
+	fmt.Printf("#=== TEST2 ===\n")
+	fmt.Println(test2)
+
+	a2 := symbolic.NewSymbolicVariable("a", symbolic.IntType)
+	b2 := symbolic.NewSymbolicVariable("b", symbolic.IntType)
+
+	btrue := []symbolic.SymbolicExpression{a2}
+	bfalse := []symbolic.SymbolicExpression{b2}
+	condition1 := symbolic.NewBinaryOperation(a2, b2, symbolic.GT)
+	branch := symbolic.NewConditionalOperation(condition1, btrue, bfalse)
+	fmt.Printf("SMT: %s\n", branch.String())
+
+	z3Test2, err := translator.TranslateExpression(branch)
+	if err != nil {
+		log.Fatalf("Error: %v", err)
+	}
+	fmt.Printf("Result: %T\n", z3Test2)
+
+	test3 := ` 
+func calculate(x, y int) int {
+	sum := x + y
+	diff := x - y
+	product := sum * diff
+	return product
+}
+`
+
+	fmt.Printf("#=== TEST3 ===\n")
+	fmt.Println(test3)
+
+	x1 := symbolic.NewSymbolicVariable("x", symbolic.IntType)
+	y1 := symbolic.NewSymbolicVariable("y", symbolic.IntType)
+	sum1 := symbolic.NewBinaryOperation(x1, y1, symbolic.ADD)
+	diff1 := symbolic.NewBinaryOperation(x1, y1, symbolic.SUB)
+	product := symbolic.NewBinaryOperation(sum1, diff1, symbolic.MUL)
+	fmt.Printf("SMT: %s\n", product.String())
+
+	z3Test3, err := translator.TranslateExpression(product)
+	if err != nil {
+		log.Fatalf("Error: %v", err)
+	}
+	fmt.Printf("Result: %T\n", z3Test3)
 }

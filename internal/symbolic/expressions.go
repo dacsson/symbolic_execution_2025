@@ -1,7 +1,9 @@
 // Package symbolic содержит конкретные реализации символьных выражений
 package symbolic
 
-import "fmt"
+import (
+	"fmt"
+)
 
 // SymbolicExpression - базовый интерфейс для всех символьных выражений
 type SymbolicExpression interface {
@@ -49,10 +51,10 @@ type SymbolicArray struct {
 	Name     string
 	ElemType ExpressionType
 	Size     uint
-	Elements []SymbolicVariable
+	Elements []SymbolicExpression
 }
 
-func NewSymbolicArray(name string, elemType ExpressionType, size uint, els []SymbolicVariable) *SymbolicArray {
+func NewSymbolicArray(name string, elemType ExpressionType, size uint, els []SymbolicExpression) *SymbolicArray {
 	return &SymbolicArray{name, elemType, size, els}
 }
 
@@ -400,9 +402,60 @@ func (uo *UnaryOperation) String() string {
 	return res
 }
 
+// ArrayAccess - Indexing operation
+type ArrayAccess struct {
+	Array SymbolicArray
+	Index SymbolicExpression
+}
+
+func (aa *ArrayAccess) Type() ExpressionType {
+	return aa.Array.ElemType
+}
+
+func (aa *ArrayAccess) String() string {
+	return aa.String() + "[" + aa.Index.String() + "]"
+}
+
+func (aa *ArrayAccess) Accept(visitor Visitor) interface{} {
+	return visitor.VisitArrayAccess(aa)
+}
+
+type ConditionalOperation struct {
+	Condition  SymbolicExpression
+	TrueBlock  []SymbolicExpression
+	FalseBlock []SymbolicExpression
+}
+
+func (co *ConditionalOperation) Type() ExpressionType {
+	return co.Condition.Type()
+}
+
+func (co *ConditionalOperation) String() string {
+	res := co.Condition.String() + " ? "
+	for _, e := range co.TrueBlock {
+		res += e.String() + " "
+	}
+
+	res += " : "
+
+	for _, e := range co.FalseBlock {
+		res += e.String() + " "
+	}
+
+	return res
+}
+
+func (co *ConditionalOperation) Accept(visitor Visitor) interface{} {
+	return visitor.VisitConditional(co)
+}
+
+func NewConditionalOperation(condition SymbolicExpression, btrue []SymbolicExpression, bfalse []SymbolicExpression) *ConditionalOperation {
+	return &ConditionalOperation{condition, btrue, bfalse}
+}
+
 // TODO: Добавьте дополнительные типы выражений по необходимости:
 // -[x] SymbolicArray
 // -[x] UnaryOperation (унарные операции: -x, !x)
-// - ArrayAccess (доступ к элементам массива: arr[index])
+// -[x] ArrayAccess (доступ к элементам массива: arr[index])
 // - FunctionCall (вызовы функций: f(x, y))
 // - ConditionalExpression (тернарный оператор: condition ? true_expr : false_expr)
