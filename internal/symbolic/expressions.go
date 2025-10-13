@@ -44,6 +44,44 @@ func (sv *SymbolicVariable) Accept(visitor Visitor) interface{} {
 	return visitor.VisitVariable(sv)
 }
 
+// SymbolicArray Symbolic array type
+type SymbolicArray struct {
+	Name     string
+	ElemType ExpressionType
+	Size     uint
+	Elements []SymbolicVariable
+}
+
+func NewSymbolicArray(name string, elemType ExpressionType, size uint, els []SymbolicVariable) *SymbolicArray {
+	return &SymbolicArray{name, elemType, size, els}
+}
+
+func (sa *SymbolicArray) Type() ExpressionType {
+	return ArrayType
+}
+
+func (sa *SymbolicArray) ElType() ExpressionType {
+	return sa.ElemType
+}
+
+func (sa *SymbolicArray) String() string {
+	res := "[ "
+	for i, el := range sa.Elements {
+		if i == len(sa.Elements)-1 {
+			res += el.String()
+		} else {
+			res += el.String() + ", "
+		}
+	}
+
+	res += "]"
+	return res
+}
+
+func (sa *SymbolicArray) Accept(visitor Visitor) interface{} {
+	return visitor.VisitArray(sa)
+}
+
 // IntConstant представляет целочисленную константу
 type IntConstant struct {
 	Value int64
@@ -67,6 +105,26 @@ func (ic *IntConstant) String() string {
 // Accept реализует Visitor pattern
 func (ic *IntConstant) Accept(visitor Visitor) interface{} {
 	return visitor.VisitIntConstant(ic)
+}
+
+type FloatConstant struct {
+	Value float32
+}
+
+func NewFloatConstant(value float32) *FloatConstant {
+	return &FloatConstant{Value: value}
+}
+
+func (fc *FloatConstant) Type() ExpressionType {
+	return FloatType
+}
+
+func (fc *FloatConstant) String() string {
+	return fmt.Sprintf("%f", fc.Value)
+}
+
+func (fc *FloatConstant) Accept(visitor Visitor) interface{} {
+	return visitor.VisitFloatConstant(fc)
 }
 
 // BoolConstant представляет булеву константу
@@ -105,24 +163,42 @@ type BinaryOperation struct {
 
 // NewBinaryOperation создаёт новую бинарную операцию
 func NewBinaryOperation(left, right SymbolicExpression, op BinaryOperator) *BinaryOperation {
-	// TODO: Реализовать
 	// Создать новую бинарную операцию и проверить совместимость типов
-	panic("не реализовано")
+	if left.Type() != right.Type() {
+		return nil
+	}
+	return &BinaryOperation{Left: left, Right: right, Operator: op}
 }
 
 // Type возвращает результирующий тип операции
 func (bo *BinaryOperation) Type() ExpressionType {
-	// TODO: Реализовать
 	// Определить результирующий тип на основе операции и типов операндов
 	// Например: int + int = int, int < int = bool
-	panic("не реализовано")
+	switch bo.Operator {
+	case EQ:
+	case GE:
+	case GT:
+	case LE:
+	case LT:
+	case NE:
+		return BoolType
+	case ADD:
+	case SUB:
+	case MUL:
+	case MOD:
+		return IntType
+	case DIV:
+		return FloatType
+	}
+
+	// UNREACHABLE?
+	return 0
 }
 
 // String возвращает строковое представление операции
 func (bo *BinaryOperation) String() string {
-	// TODO: Реализовать
 	// Формат: "(left operator right)"
-	panic("не реализовано")
+	return fmt.Sprintf("(%s %s %s)", bo.Left.String(), bo.Operator.String(), bo.Right.String())
 }
 
 // Accept реализует Visitor pattern
@@ -140,9 +216,8 @@ type LogicalOperation struct {
 
 // NewLogicalOperation создаёт новую логическую операцию
 func NewLogicalOperation(operands []SymbolicExpression, op LogicalOperator) *LogicalOperation {
-	// TODO: Реализовать
 	// Создать логическую операцию и проверить типы операндов
-	panic("не реализовано")
+	return &LogicalOperation{Operands: operands, Operator: op}
 }
 
 // Type возвращает тип логической операции (всегда bool)
@@ -152,11 +227,39 @@ func (lo *LogicalOperation) Type() ExpressionType {
 
 // String возвращает строковое представление логической операции
 func (lo *LogicalOperation) String() string {
-	// TODO: Реализовать
 	// Для NOT: "!operand"
 	// Для AND/OR: "(operand1 && operand2 && ...)"
 	// Для IMPLIES: "(operand1 => operand2)"
-	panic("не реализовано")
+	res := ""
+	switch lo.Operator {
+	case AND:
+		// Concat all operands
+		res = "("
+		for i, operand := range lo.Operands {
+			if i == len(lo.Operands)-1 {
+				res += operand.String()
+			} else {
+				res += operand.String() + " " + "&& "
+			}
+		}
+		res += ")"
+		return res
+	case OR:
+		// Concat all operands
+		res = "("
+		for i, operand := range lo.Operands {
+			if i == len(lo.Operands)-1 {
+				res += operand.String()
+			} else {
+				res += operand.String() + " " + "|| "
+			}
+		}
+		res += ")"
+	case IMPLIES:
+		res = fmt.Sprintf("%s => %s", lo.Operands[0].String(), lo.Operands[1].String())
+	}
+
+	return res
 }
 
 // Accept реализует Visitor pattern
@@ -220,7 +323,7 @@ type LogicalOperator int
 const (
 	AND LogicalOperator = iota
 	OR
-	NOT
+	//NOT
 	IMPLIES
 )
 
@@ -231,8 +334,6 @@ func (op LogicalOperator) String() string {
 		return "&&"
 	case OR:
 		return "||"
-	case NOT:
-		return "!"
 	case IMPLIES:
 		return "=>"
 	default:
@@ -240,24 +341,68 @@ func (op LogicalOperator) String() string {
 	}
 }
 
-type Ref struct {
-	// TODO: Выбрать и написать внутреннее представление символьной ссылки
+type UnaryOperator int
+
+const (
+	NOT   UnaryOperator = iota
+	MINUS               // MINUS unary minus "-1"
+	INCREMENT
+	DECREMENT
+)
+
+func (op UnaryOperator) String() string {
+	switch op {
+	case MINUS:
+		return "-"
+	case INCREMENT:
+		return "++"
+	case DECREMENT:
+		return "--"
+	case NOT:
+		return "!"
+	default:
+		return "unknown"
+	}
 }
 
-func (ref *Ref) Type() ExpressionType {
-	panic("не реализовано")
+type UnaryOperation struct {
+	Operand  SymbolicExpression
+	Operator UnaryOperator
 }
 
-func (ref *Ref) String() string {
-	panic("не реализовано")
+func (uo *UnaryOperation) Type() ExpressionType {
+	switch uo.Operator {
+	case MINUS:
+	case INCREMENT:
+	case DECREMENT:
+		return IntType
+	case NOT:
+		return BoolType
+	default:
+		return BoolType
+	}
+	panic("unreachable")
 }
 
-func (ref *Ref) Accept(visitor Visitor) interface{} {
-	panic("не реализовано")
+func (uo *UnaryOperation) String() string {
+	res := ""
+	switch uo.Operator {
+	case NOT:
+		res = fmt.Sprintf("!%s", uo.Operand.String())
+	case MINUS:
+		res = fmt.Sprintf("-%s", uo.Operand.String())
+	case INCREMENT:
+		res = fmt.Sprintf("%s++", uo.Operand.String())
+	case DECREMENT:
+		res = fmt.Sprintf("%s--", uo.Operand.String())
+	}
+
+	return res
 }
 
 // TODO: Добавьте дополнительные типы выражений по необходимости:
-// - UnaryOperation (унарные операции: -x, !x)
+// -[x] SymbolicArray
+// -[x] UnaryOperation (унарные операции: -x, !x)
 // - ArrayAccess (доступ к элементам массива: arr[index])
 // - FunctionCall (вызовы функций: f(x, y))
 // - ConditionalExpression (тернарный оператор: condition ? true_expr : false_expr)
