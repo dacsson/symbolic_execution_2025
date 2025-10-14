@@ -300,7 +300,7 @@ func (zt *Z3Translator) VisitUnaryOperation(expr *symbolic.UnaryOperation) inter
 		return operand.(z3.Int).Sub(one)
 	case symbolic.MINUS:
 		// Is this bad lol?
-		value := operand.(symbolic.IntConstant).Value
+		value, _, _ := operand.(z3.Int).AsInt64()
 		return zt.ctx.FromInt(value*(-1), zt.ctx.IntSort()).(z3.Int)
 	}
 
