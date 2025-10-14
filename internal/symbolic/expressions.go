@@ -51,11 +51,11 @@ type SymbolicArray struct {
 	Name     string
 	ElemType ExpressionType
 	Size     uint
-	Elements []SymbolicExpression
+	// Elements []SymbolicExpression
 }
 
-func NewSymbolicArray(name string, elemType ExpressionType, size uint, els []SymbolicExpression) *SymbolicArray {
-	return &SymbolicArray{name, elemType, size, els}
+func NewSymbolicArray(name string, elemType ExpressionType, size uint) *SymbolicArray {
+	return &SymbolicArray{name, elemType, size}
 }
 
 func (sa *SymbolicArray) Type() ExpressionType {
@@ -67,17 +67,18 @@ func (sa *SymbolicArray) ElType() ExpressionType {
 }
 
 func (sa *SymbolicArray) String() string {
-	res := "[ "
-	for i, el := range sa.Elements {
-		if i == len(sa.Elements)-1 {
-			res += el.String()
-		} else {
-			res += el.String() + ", "
-		}
-	}
-
-	res += "]"
-	return res
+	//res := "[ "
+	//for i, el := range sa.Elements {
+	//	if i == len(sa.Elements)-1 {
+	//		res += el.String()
+	//	} else {
+	//		res += el.String() + ", "
+	//	}
+	//}
+	//
+	//res += "]"
+	//return res
+	return fmt.Sprintf("%s[%s]", sa.Name, sa.ElemType)
 }
 
 func (sa *SymbolicArray) Accept(visitor Visitor) interface{} {
@@ -402,6 +403,14 @@ func (uo *UnaryOperation) String() string {
 	return res
 }
 
+func (uo *UnaryOperation) Accept(visitor Visitor) interface{} {
+	return visitor.VisitUnaryOperation(uo)
+}
+
+func NewUnaryOperation(operand SymbolicExpression, op UnaryOperator) *UnaryOperation {
+	return &UnaryOperation{Operand: operand, Operator: op}
+}
+
 // ArrayAccess - Indexing operation
 type ArrayAccess struct {
 	Array SymbolicArray
@@ -413,11 +422,15 @@ func (aa *ArrayAccess) Type() ExpressionType {
 }
 
 func (aa *ArrayAccess) String() string {
-	return aa.String() + "[" + aa.Index.String() + "]"
+	return aa.Array.String() + "[" + aa.Index.String() + "]"
 }
 
 func (aa *ArrayAccess) Accept(visitor Visitor) interface{} {
 	return visitor.VisitArrayAccess(aa)
+}
+
+func NewArrayAccess(array SymbolicArray, index SymbolicExpression) *ArrayAccess {
+	return &ArrayAccess{Array: array, Index: index}
 }
 
 type ConditionalOperation struct {

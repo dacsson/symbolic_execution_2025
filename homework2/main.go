@@ -126,4 +126,112 @@ func calculate(x, y int) int {
 		log.Fatalf("Error: %v", err)
 	}
 	fmt.Printf("Result: %T\n", z3Test3)
+
+	test4 := ` 
+func signFunction(x int) int {
+	if x > 0 {
+		return 1
+	}
+	if x < 0 {
+		return -1
+	}
+	return 0
+}
+`
+	fmt.Printf("#=== TEST4 ===\n")
+	fmt.Println(test4)
+
+	x2 := symbolic.NewSymbolicVariable("x", symbolic.IntType)
+	one := symbolic.NewIntConstant(1)
+	mone := symbolic.NewIntConstant(-1)
+
+	// x == 0 (last branch)
+	//condition4 := symbolic.NewBinaryOperation(x2, zero, symbolic.EQ)
+	//btrue4 := []symbolic.SymbolicExpression{zero}
+	//var bfalse4 []symbolic.SymbolicExpression
+	//branch4 := symbolic.NewConditionalOperation(condition4, btrue4, bfalse4)
+	//ops := []symbolic.SymbolicExpression{condition4, zero}
+	//branch4 := symbolic.NewLogicalOperation(ops, symbolic.IMPLIES)
+
+	// x < 0
+	condition3 := symbolic.NewBinaryOperation(x2, zero, symbolic.LT)
+	btrue3 := []symbolic.SymbolicExpression{mone}
+	bfalse3 := []symbolic.SymbolicExpression{zero}
+	branch3 := symbolic.NewConditionalOperation(condition3, btrue3, bfalse3)
+
+	// x > 0
+	btrue2 := []symbolic.SymbolicExpression{one}
+	bfalse2 := []symbolic.SymbolicExpression{branch3}
+	condition2 := symbolic.NewBinaryOperation(x2, zero, symbolic.GT)
+	branch2 := symbolic.NewConditionalOperation(condition2, btrue2, bfalse2)
+
+	fmt.Printf("SMT: %s\n", branch2.String())
+
+	z3Test4, err := translator.TranslateExpression(branch2)
+	if err != nil {
+		log.Fatalf("Error: %v", err)
+	}
+	fmt.Printf("Result: %T\n", z3Test4)
+
+	test5 := `
+func unaryOps(x int, flag bool) int {
+	result := -x
+	if !flag {
+		result = -result
+	}
+	return result
+}
+`
+
+	fmt.Printf("#=== TEST5 ===\n")
+	fmt.Println(test5)
+
+	x3 := symbolic.NewSymbolicVariable("x", symbolic.IntType)
+	flag := symbolic.NewSymbolicVariable("flag", symbolic.BoolType)
+	res := symbolic.NewUnaryOperation(x3, symbolic.MINUS)
+
+	condition4 := symbolic.NewUnaryOperation(flag, symbolic.NOT)
+
+	btrue4 := []symbolic.SymbolicExpression{symbolic.NewUnaryOperation(res, symbolic.MINUS)}
+	bfalse4 := []symbolic.SymbolicExpression{res}
+
+	branch4 := symbolic.NewConditionalOperation(condition4, btrue4, bfalse4)
+
+	fmt.Printf("SMT: %s\n", branch4.String())
+
+	z3Test5, err := translator.TranslateExpression(branch4)
+	if err != nil {
+		log.Fatalf("Error: %v", err)
+	}
+	fmt.Printf("Result: %T\n", z3Test5)
+
+	test6 := `
+func arrayOps(x []int) int {
+	if x[0] < 0 {
+		return 0
+	} else {
+		return x[0]
+	}
+}
+`
+
+	fmt.Printf("#=== TEST6 ===\n")
+	fmt.Println(test6)
+
+	x4 := symbolic.NewSymbolicArray("x", symbolic.IntType, 1)
+	arr_acc := symbolic.NewArrayAccess(*x4, zero)
+
+	condition5 := symbolic.NewBinaryOperation(arr_acc, zero, symbolic.LT)
+
+	btrue5 := []symbolic.SymbolicExpression{zero}
+	bfalse5 := []symbolic.SymbolicExpression{arr_acc}
+	branch5 := symbolic.NewConditionalOperation(condition5, btrue5, bfalse5)
+
+	fmt.Printf("SMT: %s\n", branch5.String())
+
+	z3Test6, err := translator.TranslateExpression(branch5)
+	if err != nil {
+		log.Fatalf("Error: %v", err)
+	}
+	fmt.Printf("Result: %T\n", z3Test6)
 }

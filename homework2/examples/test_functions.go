@@ -91,6 +91,15 @@ func unaryOps(x int, flag bool) int {
 	return result
 }
 
+// Arrays
+func arrayOps(x []int) int {
+	if x[0] < 0 {
+		return 0
+	} else {
+		return x[0]
+	}
+}
+
 // Функция с тернарной логикой (через if-else)
 func ternary(condition bool, a, b int) int {
 	if condition {
