@@ -240,6 +240,22 @@ func (op LogicalOperator) String() string {
 	}
 }
 
+type Ref struct {
+	// TODO: Выбрать и написать внутреннее представление символьной ссылки
+}
+
+func (ref *Ref) Type() ExpressionType {
+	panic("не реализовано")
+}
+
+func (ref *Ref) String() string {
+	panic("не реализовано")
+}
+
+func (ref *Ref) Accept(visitor Visitor) interface{} {
+	panic("не реализовано")
+}
+
 // TODO: Добавьте дополнительные типы выражений по необходимости:
 // - UnaryOperation (унарные операции: -x, !x)
 // - ArrayAccess (доступ к элементам массива: arr[index])
