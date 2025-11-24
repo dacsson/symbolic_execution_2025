@@ -3,6 +3,7 @@ package symbolic
 
 import (
 	"fmt"
+	"strconv"
 )
 
 // SymbolicExpression - базовый интерфейс для всех символьных выражений
@@ -45,6 +46,24 @@ func (sv *SymbolicVariable) String() string {
 func (sv *SymbolicVariable) Accept(visitor Visitor) interface{} {
 	return visitor.VisitVariable(sv)
 }
+
+// SymbolicPointer Typed pointer
+type SymbolicPointer struct {
+	Address     uint
+	PointerType ExpressionType
+}
+
+func NewSymbolicPointer(address uint, pointerType ExpressionType) *SymbolicPointer {
+	return &SymbolicPointer{address, pointerType}
+}
+
+func (sv *SymbolicPointer) Type() ExpressionType {
+	return AddrType
+}
+
+func (sv *SymbolicPointer) String() string { return "@" + strconv.Itoa(int(sv.Address)) }
+
+func (sv *SymbolicPointer) Accept(visitor Visitor) interface{} { return visitor.VisitPointer(sv) }
 
 // SymbolicArray Symbolic array type
 type SymbolicArray struct {
@@ -471,4 +490,5 @@ func NewConditionalOperation(condition SymbolicExpression, btrue []SymbolicExpre
 // -[x] UnaryOperation (унарные операции: -x, !x)
 // -[x] ArrayAccess (доступ к элементам массива: arr[index])
 // - FunctionCall (вызовы функций: f(x, y))
-// - ConditionalExpression (тернарный оператор: condition ? true_expr : false_expr)
+// -[x] ConditionalExpression (тернарный оператор: condition ? true_expr : false_expr)
+// - Pointers (

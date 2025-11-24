@@ -12,5 +12,6 @@ type Visitor interface {
 	VisitUnaryOperation(expr *UnaryOperation) interface{}
 	VisitArrayAccess(expr *ArrayAccess) interface{}
 	VisitConditional(expr *ConditionalOperation) interface{}
+	VisitPointer(expr *SymbolicPointer) interface{}
 	// TODO: Добавьте методы для других типов выражений по мере необходимости
 }
