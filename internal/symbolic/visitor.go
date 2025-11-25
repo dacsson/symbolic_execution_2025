@@ -13,5 +13,7 @@ type Visitor interface {
 	VisitArrayAccess(expr *ArrayAccess) interface{}
 	VisitConditional(expr *ConditionalOperation) interface{}
 	VisitPointer(expr *SymbolicPointer) interface{}
+	VisitFieldAccess(expr *FieldAccess) interface{}
+	VisitFieldAssign(expr *FieldAssign) interface{}
 	// TODO: Добавьте методы для других типов выражений по мере необходимости
 }

@@ -1,6 +1,8 @@
 // Package symbolic определяет базовые типы символьных выражений
 package symbolic
 
+import "github.com/ebukreev/go-z3/z3"
+
 // ExpressionType представляет тип символьного выражения
 type ExpressionType int
 
@@ -10,6 +12,7 @@ const (
 	BoolType
 	ArrayType
 	AddrType
+	ObjType
 	// Добавьте другие типы по необходимости
 )
 
@@ -26,7 +29,28 @@ func (et ExpressionType) String() string {
 		return "float"
 	case AddrType:
 		return "address"
+	case ObjType:
+		return "object"
 	default:
 		return "unknown"
+	}
+}
+
+// AsSort type to sort (array?)
+func (et ExpressionType) AsSort(ctx *z3.Context) z3.Sort {
+	switch et {
+	case IntType:
+		return ctx.IntSort()
+	case BoolType:
+		return ctx.BoolSort()
+	case FloatType:
+		return ctx.FloatSort(8, 24)
+	//case ArrayType:
+	//	if withTy == nil {
+	//		panic("withTy is nil, probably unknown array element type found")
+	//	}
+	//	return ctx.ArraySort(ctx.IntSort(), withTy.asSort(ctx, nil))
+	default:
+		panic("unknown type")
 	}
 }

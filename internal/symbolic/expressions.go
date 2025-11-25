@@ -51,11 +51,13 @@ func (sv *SymbolicVariable) Accept(visitor Visitor) interface{} {
 type SymbolicPointer struct {
 	Address     uint
 	PointerType ExpressionType
+	Expr        SymbolicExpression
+	Name        string // JUST LET ME MAKE THIS OPTIONAL IS THIS SO HARD GO
 }
 
-func NewSymbolicPointer(address uint, pointerType ExpressionType) *SymbolicPointer {
-	return &SymbolicPointer{address, pointerType}
-}
+//func NewSymbolicPointer(address uint, pointerType ExpressionType) *SymbolicPointer {
+//	return &SymbolicPointer{address, pointerType}
+//}
 
 func (sv *SymbolicPointer) Type() ExpressionType {
 	return AddrType
@@ -186,9 +188,13 @@ type BinaryOperation struct {
 // NewBinaryOperation создаёт новую бинарную операцию
 func NewBinaryOperation(left, right SymbolicExpression, op BinaryOperator) *BinaryOperation {
 	// Создать новую бинарную операцию и проверить совместимость типов
-	if left.Type() != right.Type() {
-		return nil
+	if left.Type() != ObjType && left.Type() != ArrayType {
+		// ^ Do not check if we doing field or indexing magic tricks
+		if left.Type() != right.Type() {
+			return nil
+		}
 	}
+
 	return &BinaryOperation{Left: left, Right: right, Operator: op}
 }
 
@@ -307,6 +313,11 @@ const (
 	LE // меньше или равно
 	GT // больше
 	GE // больше или равно
+
+	// IDK if we should include this as a BINOP but...
+	FIELD_ASSIGN
+	FIELD_ACCESS
+	INDEX
 )
 
 // String возвращает строковое представление оператора
@@ -483,6 +494,64 @@ func (co *ConditionalOperation) Accept(visitor Visitor) interface{} {
 
 func NewConditionalOperation(condition SymbolicExpression, btrue []SymbolicExpression, bfalse []SymbolicExpression) *ConditionalOperation {
 	return &ConditionalOperation{condition, btrue, bfalse}
+}
+
+type FieldAccess struct {
+	Obj        SymbolicExpression
+	FieldIdx   int
+	Key        SymbolicExpression
+	StructName string
+	Ty         ExpressionType
+}
+
+func NewFieldAccess(obj SymbolicExpression, Idx int, key SymbolicExpression, structName string, ty ExpressionType) *FieldAccess {
+	return &FieldAccess{
+		Obj:        obj,
+		FieldIdx:   Idx,
+		Key:        key,
+		StructName: structName,
+		Ty:         ty,
+	}
+}
+
+func (fa *FieldAccess) Type() ExpressionType {
+	return fa.Obj.Type()
+}
+
+func (fa *FieldAccess) String() string {
+	return "(" + fa.Obj.String() + ")"
+}
+
+func (fa *FieldAccess) Accept(visitor Visitor) interface{} {
+	return visitor.VisitFieldAccess(fa)
+}
+
+type FieldAssign struct {
+	Obj        SymbolicExpression
+	FieldIdx   int
+	Value      SymbolicExpression
+	StructName string
+}
+
+func NewFieldAssign(obj SymbolicExpression, Idx int, v SymbolicExpression, structName string) *FieldAssign {
+	return &FieldAssign{
+		Obj:        obj,
+		FieldIdx:   Idx,
+		Value:      v,
+		StructName: structName,
+	}
+}
+
+func (fa *FieldAssign) Type() ExpressionType {
+	return fa.Value.Type()
+}
+
+func (fa *FieldAssign) String() string {
+	return "(" + fa.Obj.String() + "." + strconv.Itoa(fa.FieldIdx) + "=" + fa.Value.String() + ")"
+}
+
+func (fa *FieldAssign) Accept(visitor Visitor) interface{} {
+	return visitor.VisitFieldAssign(fa)
 }
 
 // TODO: Добавьте дополнительные типы выражений по необходимости:
