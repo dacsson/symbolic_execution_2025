@@ -13,6 +13,7 @@ const (
 	ArrayType
 	AddrType
 	ObjType
+	FuncType
 	// Добавьте другие типы по необходимости
 )
 

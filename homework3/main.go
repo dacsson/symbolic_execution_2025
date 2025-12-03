@@ -134,15 +134,11 @@ func testArrayModification(arr [5]int) [5]int {
 
 	arr2 := translator.Mem.Allocate(symbolic.ArrayType, "", init_dummy)
 
-	// fillzero
-	for i := 0; i < 5; i++ {
-		translator.Mem.AssignToArray(arr2, i, symbolic.NewIntConstant(0))
-	}
-
 	// mutate
 	var assignments [5]symbolic.SymbolicExpression
 	for i := int64(0); i < 5; i++ {
-		mul := symbolic.NewBinaryOperation(symbolic.NewIntConstant(i), symbolic.NewIntConstant(i), symbolic.ADD)
+		ell1 := translator.Mem.GetFieldValue(arr2, int(i), symbolic.IntType)
+		mul := symbolic.NewBinaryOperation(ell1, symbolic.NewIntConstant(i), symbolic.ADD)
 		i_ass := translator.Mem.AssignField(arr2, int(i), mul)
 		assignments[i] = i_ass
 	}

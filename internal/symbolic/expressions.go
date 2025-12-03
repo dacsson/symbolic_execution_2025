@@ -554,10 +554,60 @@ func (fa *FieldAssign) Accept(visitor Visitor) interface{} {
 	return visitor.VisitFieldAssign(fa)
 }
 
+type Function struct {
+	Name       string
+	Args       []ExpressionType
+	ReturnType ExpressionType
+}
+
+func NewFunction(name string, argsTypes []ExpressionType, retTy ExpressionType) *Function {
+	return &Function{
+		Name:       name,
+		Args:       argsTypes,
+		ReturnType: retTy,
+	}
+}
+
+func (fu *Function) Type() ExpressionType {
+	return FuncType
+}
+
+func (fu *Function) String() string {
+	return "(" + fu.Name + " -> " + fu.ReturnType.String() + ")"
+}
+
+func (fu *Function) Accept(visitor Visitor) interface{} {
+	return visitor.VisitFunction(fu)
+}
+
+type FunctionCall struct {
+	FunctionDecl Function
+	Args         []SymbolicExpression
+}
+
+func NewFunctionCall(function Function, args []SymbolicExpression) *FunctionCall {
+	return &FunctionCall{
+		FunctionDecl: function,
+		Args:         args,
+	}
+}
+
+func (fc *FunctionCall) Type() ExpressionType {
+	return fc.FunctionDecl.ReturnType
+}
+
+func (fc *FunctionCall) String() string {
+	return "(" + fc.FunctionDecl.Name + "(Arg1, Arg2, ..., ArgN))"
+}
+
+func (fc *FunctionCall) Accept(visitor Visitor) interface{} {
+	return visitor.VisitFunctionCall(fc)
+}
+
 // TODO: Добавьте дополнительные типы выражений по необходимости:
 // -[x] SymbolicArray
 // -[x] UnaryOperation (унарные операции: -x, !x)
 // -[x] ArrayAccess (доступ к элементам массива: arr[index])
-// - FunctionCall (вызовы функций: f(x, y))
+// -[x] FunctionCall (вызовы функций: f(x, y))
 // -[x] ConditionalExpression (тернарный оператор: condition ? true_expr : false_expr)
-// - Pointers (
+// -[x] Pointers (

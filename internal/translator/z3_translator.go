@@ -413,9 +413,9 @@ func (zt *Z3Translator) createZ3Array(name string, expr symbolic.SymbolicArray) 
 
 func (zt *Z3Translator) VisitFieldAccess(expr *symbolic.FieldAccess) interface{} {
 	// Guard for - for example array out of bounds index expr
-	if expr.Key == nil {
-		return nil
-	}
+	//if expr.Key == nil {
+	//	return nil
+	//}
 
 	name := getFieldName(expr.Key.String(), expr.FieldIdx)
 	index := zt.Ctx.Const(name, zt.Ctx.IntSort())
@@ -447,6 +447,26 @@ func (zt *Z3Translator) VisitFieldAssign(expr *symbolic.FieldAssign) interface{}
 	visit := expr.Value.Accept(zt)
 	zt.objs[fieldName] = zt.objs[fieldName].Store(index, visit.(z3.Value))
 	return zt.objs[fieldName]
+}
+
+func (zt *Z3Translator) VisitFunction(expr *symbolic.Function) interface{} {
+	var argsSorts []z3.Sort
+	for i := range expr.Args {
+		argTy := expr.Args[i]
+		argsSorts = append(argsSorts, argTy.AsSort(zt.Ctx))
+	}
+	return zt.Ctx.FuncDecl(expr.Name, argsSorts, expr.ReturnType.AsSort(zt.Ctx))
+}
+
+func (zt *Z3Translator) VisitFunctionCall(expr *symbolic.FunctionCall) interface{} {
+	decl := zt.VisitFunction(&expr.FunctionDecl)
+	var args []z3.Value
+	for i := range expr.Args {
+		arg := expr.Args[i]
+		translatedArg := arg.Accept(zt)
+		args = append(args, translatedArg.(z3.Value))
+	}
+	return decl.(z3.FuncDecl).Apply(args...)
 }
 
 // Mangling

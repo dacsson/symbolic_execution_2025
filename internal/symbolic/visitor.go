@@ -15,5 +15,9 @@ type Visitor interface {
 	VisitPointer(expr *SymbolicPointer) interface{}
 	VisitFieldAccess(expr *FieldAccess) interface{}
 	VisitFieldAssign(expr *FieldAssign) interface{}
+
+	// funcs
+	VisitFunction(fu *Function) interface{}
+	VisitFunctionCall(fc *FunctionCall) interface{}
 	// TODO: Добавьте методы для других типов выражений по мере необходимости
 }

@@ -5,7 +5,7 @@ import (
 )
 
 type Memory interface {
-	Allocate(tpe symbolic.ExpressionType) *symbolic.SymbolicPointer
+	Allocate(tpe symbolic.ExpressionType, structName string, init symbolic.SymbolicExpression) *symbolic.SymbolicPointer
 
 	//--- BUILTIN ---
 	AssignPrimitive(ptr *symbolic.SymbolicPointer, value symbolic.SymbolicExpression)
