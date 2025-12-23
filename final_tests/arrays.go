@@ -1,7 +1,5 @@
 package final_tests
 
-import "errors"
-
 func DefaultBooleanValues() []bool {
 	array := make([]bool, 3)
 	if !array[1] {
@@ -46,9 +44,9 @@ func BooleanArray(arr []bool) int {
 	return 3
 }
 
-func CreateArray(x, y, length int) ([]*ObjectWithPrimitivesClass, error) {
+func CreateArray(x, y, length int) []*ObjectWithPrimitivesClass {
 	if length < 3 {
-		return nil, errors.New("IllegalArgumentException: length must be at least 3")
+		return nil
 	}
 
 	array := make([]*ObjectWithPrimitivesClass, length)
@@ -59,12 +57,12 @@ func CreateArray(x, y, length int) ([]*ObjectWithPrimitivesClass, error) {
 		array[i].y = y + i
 	}
 
-	return array, nil
+	return array
 }
 
 func IsIdentityMatrix(matrix [][]int) bool {
 	if len(matrix) < 3 {
-		panic("IllegalArgumentException: matrix length < 3")
+		return false
 	}
 	for i := 0; i < len(matrix); i++ {
 		if len(matrix[i]) != len(matrix) {

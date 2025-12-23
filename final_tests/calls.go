@@ -1,9 +1,5 @@
 package final_tests
 
-import (
-	"errors"
-)
-
 type InvokeClass struct {
 	Value int
 }
@@ -24,17 +20,17 @@ func half(a int) int {
 	return a / 2
 }
 
-func SimpleFormula(fst, snd int) (int, error) {
+func SimpleFormula(fst, snd int) int {
 	if fst < 100 {
-		return 0, errors.New("IllegalArgumentException: fst < 100")
+		return 0
 	} else if snd < 100 {
-		return 0, errors.New("IllegalArgumentException: snd < 100")
+		return 0
 	}
 
 	x := fst + 5
 	y := half(snd)
 
-	return mult(x, y), nil
+	return mult(x, y)
 }
 
 func initialize(value int) *InvokeClass {
@@ -69,15 +65,15 @@ func getTwo() int {
 	return 2
 }
 
-func ParticularValue(invokeObject *InvokeClass) (*InvokeClass, error) {
+func ParticularValue(invokeObject *InvokeClass) *InvokeClass {
 	if invokeObject.Value < 0 {
-		return nil, errors.New("IllegalArgumentException: value < 0")
+		return nil
 	}
 	x := getFive() * getTwo()
 	y := getFive() / getTwo()
 
 	invokeObject.Value = x + y
-	return invokeObject, nil
+	return invokeObject
 }
 
 func getNull() *InvokeClass {

@@ -1,9 +1,5 @@
 package final_tests
 
-import (
-	"errors"
-)
-
 type ObjectWithPrimitivesClass struct {
 	ValueByDefault int
 	x, y           int
@@ -32,15 +28,15 @@ func Example(value *ObjectWithPrimitivesClass) *ObjectWithPrimitivesClass {
 	return value
 }
 
-func CreateObject(a, b int, objectExample *ObjectWithPrimitivesClass) (*ObjectWithPrimitivesClass, error) {
+func CreateObject(a, b int, objectExample *ObjectWithPrimitivesClass) *ObjectWithPrimitivesClass {
 	object := NewObjectWithPrimitivesClass()
 	object.x = a + 5
 	object.y = b + 6
 	object.Weight = objectExample.Weight
 	if object.Weight < 0 {
-		return nil, errors.New("IllegalArgumentException: weight < 0")
+		return nil
 	}
-	return object, nil
+	return object
 }
 
 func Memory(objectExample *ObjectWithPrimitivesClass, value int) *ObjectWithPrimitivesClass {
@@ -73,7 +69,7 @@ func CompareTwoNullObjects(value int) int {
 	if fst == snd {
 		return 1
 	}
-	panic("RuntimeException")
+	return 0
 }
 
 type SimpleDataClass struct {
@@ -88,11 +84,11 @@ type ObjectWithRefFieldClass struct {
 	ArrayField []int
 }
 
-func WriteToRefTypeField(objectExample *ObjectWithRefFieldClass, value int) (*ObjectWithRefFieldClass, error) {
+func WriteToRefTypeField(objectExample *ObjectWithRefFieldClass, value int) *ObjectWithRefFieldClass {
 	if value != 42 {
-		return nil, errors.New("IllegalArgumentException: value must be 42")
+		return nil
 	} else if objectExample.RefField != nil {
-		return nil, errors.New("IllegalArgumentException: refField must be nil")
+		return nil
 	}
 
 	simpleDataClass := &SimpleDataClass{
@@ -100,12 +96,12 @@ func WriteToRefTypeField(objectExample *ObjectWithRefFieldClass, value int) (*Ob
 		b: value * 2,
 	}
 	objectExample.RefField = simpleDataClass
-	return objectExample, nil
+	return objectExample
 }
 
-func WriteToArrayField(objectExample *ObjectWithRefFieldClass, length int) (*ObjectWithRefFieldClass, error) {
+func WriteToArrayField(objectExample *ObjectWithRefFieldClass, length int) *ObjectWithRefFieldClass {
 	if length < 3 {
-		return nil, errors.New("IllegalArgumentException: length must be at least 3")
+		return nil
 	}
 
 	array := make([]int, length)
@@ -116,7 +112,7 @@ func WriteToArrayField(objectExample *ObjectWithRefFieldClass, length int) (*Obj
 	objectExample.ArrayField = array
 	objectExample.ArrayField[length-1] = 100
 
-	return objectExample, nil
+	return objectExample
 }
 
 func ReadFromArrayField(objectExample *ObjectWithRefFieldClass, value int) int {
@@ -129,7 +125,7 @@ func ReadFromArrayField(objectExample *ObjectWithRefFieldClass, value int) int {
 func CompareTwoDifferentObjectsFromArguments(fst, snd *ObjectWithRefFieldClass) int {
 	if fst.x > 0 && snd.x < 0 {
 		if fst == snd {
-			panic("RuntimeException")
+			return 0
 		} else {
 			return 1
 		}
@@ -166,14 +162,14 @@ type RecursiveTypeClass struct {
 	Value int
 }
 
-func NextValue(node *RecursiveTypeClass, value int) (*RecursiveTypeClass, error) {
+func NextValue(node *RecursiveTypeClass, value int) *RecursiveTypeClass {
 	if value == 0 {
-		return nil, errors.New("IllegalArgumentException: value cannot be 0")
+		return nil
 	}
 	if node.Next != nil && node.Next.Value == value {
-		return node.Next, nil
+		return node.Next
 	}
-	return nil, nil
+	return nil
 }
 
 func WriteObjectField(node *RecursiveTypeClass) *RecursiveTypeClass {
@@ -190,13 +186,14 @@ type Person struct {
 	ID   int
 }
 
-func TestPathConstraintMutability(p Person) {
+func TestPathConstraintMutability(p Person) int {
 	if p.Age != 18 {
 		p.Age = 18
 		if p.Age != 18 {
-			panic("Seems impossible")
+			return 0
 		} else {
-			println("Seems ok")
+			return 1
 		}
 	}
+	return 2
 }

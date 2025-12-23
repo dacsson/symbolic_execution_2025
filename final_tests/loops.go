@@ -10,7 +10,7 @@ func LoopWithConcreteBound(n int) int {
 
 func LoopWithSymbolicBound(n int) int {
 	if n > 10 {
-		panic("Assumption violated: n should be less than or equal to 10")
+		return -1
 	}
 
 	result := 0
@@ -22,7 +22,7 @@ func LoopWithSymbolicBound(n int) int {
 
 func LoopWithSymbolicBoundAndSymbolicBranching(n int, condition bool) int {
 	if n > 10 {
-		panic("Assumption violated: n should be less than or equal to 10")
+		return -1
 	}
 
 	result := 0
@@ -36,7 +36,7 @@ func LoopWithSymbolicBoundAndSymbolicBranching(n int, condition bool) int {
 
 func LoopWithSymbolicBoundAndComplexControlFlow(n int, condition bool) int {
 	if n > 10 {
-		panic("Assumption violated: n should be less than or equal to 10")
+		return -1
 	}
 
 	result := 0
