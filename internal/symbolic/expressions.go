@@ -3,7 +3,10 @@ package symbolic
 
 import (
 	"fmt"
+<<<<<<< HEAD
 	"strconv"
+=======
+>>>>>>> origin/main
 )
 
 // SymbolicExpression - базовый интерфейс для всех символьных выражений
@@ -47,6 +50,7 @@ func (sv *SymbolicVariable) Accept(visitor Visitor) interface{} {
 	return visitor.VisitVariable(sv)
 }
 
+<<<<<<< HEAD
 // SymbolicPointer Typed pointer
 type SymbolicPointer struct {
 	Address     uint
@@ -67,6 +71,8 @@ func (sv *SymbolicPointer) String() string { return "@" + strconv.Itoa(int(sv.Ad
 
 func (sv *SymbolicPointer) Accept(visitor Visitor) interface{} { return visitor.VisitPointer(sv) }
 
+=======
+>>>>>>> origin/main
 // SymbolicArray Symbolic array type
 type SymbolicArray struct {
 	Name     string
@@ -188,6 +194,7 @@ type BinaryOperation struct {
 // NewBinaryOperation создаёт новую бинарную операцию
 func NewBinaryOperation(left, right SymbolicExpression, op BinaryOperator) *BinaryOperation {
 	// Создать новую бинарную операцию и проверить совместимость типов
+<<<<<<< HEAD
 	if left.Type() != ObjType && left.Type() != ArrayType {
 		// ^ Do not check if we doing field or indexing magic tricks
 		if left.Type() != right.Type() {
@@ -195,6 +202,11 @@ func NewBinaryOperation(left, right SymbolicExpression, op BinaryOperator) *Bina
 		}
 	}
 
+=======
+	if left.Type() != right.Type() {
+		return nil
+	}
+>>>>>>> origin/main
 	return &BinaryOperation{Left: left, Right: right, Operator: op}
 }
 
@@ -496,6 +508,7 @@ func NewConditionalOperation(condition SymbolicExpression, btrue []SymbolicExpre
 	return &ConditionalOperation{condition, btrue, bfalse}
 }
 
+<<<<<<< HEAD
 type FieldAccess struct {
 	Obj        SymbolicExpression
 	FieldIdx   int
@@ -604,10 +617,17 @@ func (fc *FunctionCall) Accept(visitor Visitor) interface{} {
 	return visitor.VisitFunctionCall(fc)
 }
 
+=======
+>>>>>>> origin/main
 // TODO: Добавьте дополнительные типы выражений по необходимости:
 // -[x] SymbolicArray
 // -[x] UnaryOperation (унарные операции: -x, !x)
 // -[x] ArrayAccess (доступ к элементам массива: arr[index])
+<<<<<<< HEAD
 // -[x] FunctionCall (вызовы функций: f(x, y))
 // -[x] ConditionalExpression (тернарный оператор: condition ? true_expr : false_expr)
 // -[x] Pointers (
+=======
+// - FunctionCall (вызовы функций: f(x, y))
+// - ConditionalExpression (тернарный оператор: condition ? true_expr : false_expr)
+>>>>>>> origin/main

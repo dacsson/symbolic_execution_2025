@@ -28,10 +28,13 @@ func (et ExpressionType) String() string {
 		return "array"
 	case FloatType:
 		return "float"
+<<<<<<< HEAD
 	case AddrType:
 		return "address"
 	case ObjType:
 		return "object"
+=======
+>>>>>>> origin/main
 	default:
 		return "unknown"
 	}

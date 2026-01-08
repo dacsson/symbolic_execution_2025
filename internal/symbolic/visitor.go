@@ -12,6 +12,7 @@ type Visitor interface {
 	VisitUnaryOperation(expr *UnaryOperation) interface{}
 	VisitArrayAccess(expr *ArrayAccess) interface{}
 	VisitConditional(expr *ConditionalOperation) interface{}
+<<<<<<< HEAD
 	VisitPointer(expr *SymbolicPointer) interface{}
 	VisitFieldAccess(expr *FieldAccess) interface{}
 	VisitFieldAssign(expr *FieldAssign) interface{}
@@ -19,5 +20,7 @@ type Visitor interface {
 	// funcs
 	VisitFunction(fu *Function) interface{}
 	VisitFunctionCall(fc *FunctionCall) interface{}
+=======
+>>>>>>> origin/main
 	// TODO: Добавьте методы для других типов выражений по мере необходимости
 }
