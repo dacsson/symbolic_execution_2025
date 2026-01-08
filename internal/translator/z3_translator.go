@@ -2,6 +2,9 @@
 package translator
 
 import (
+	"math/big"
+	"strconv"
+	"symbolic-execution-course/internal/memory"
 	"symbolic-execution-course/internal/symbolic"
 
 	"github.com/ebukreev/go-z3/z3"
@@ -9,9 +12,11 @@ import (
 
 // Z3Translator транслирует символьные выражения в Z3 формулы
 type Z3Translator struct {
-	ctx    *z3.Context
+	Ctx    *z3.Context
 	config *z3.Config
-	vars   map[string]z3.Value // Кэш переменных
+	vars   map[string]z3.Value    // Кэш переменных
+	objs   map[string]z3.Array    // Кэш обхектов
+	Mem    *memory.SymbolicMemory // Мем ори
 }
 
 // NewZ3Translator создаёт новый экземпляр Z3 транслятора
@@ -20,15 +25,17 @@ func NewZ3Translator() *Z3Translator {
 	ctx := z3.NewContext(config)
 
 	return &Z3Translator{
-		ctx:    ctx,
+		Ctx:    ctx,
 		config: config,
 		vars:   make(map[string]z3.Value),
+		objs:   make(map[string]z3.Array),
+		Mem:    memory.NewSymbolicMemory(),
 	}
 }
 
 // GetContext возвращает Z3 контекст
 func (zt *Z3Translator) GetContext() interface{} {
-	return zt.ctx
+	return zt.Ctx
 }
 
 // Reset сбрасывает состояние транслятора
@@ -55,8 +62,8 @@ func (zt *Z3Translator) VisitVariable(expr *symbolic.SymbolicVariable) interface
 	// Добавить в кэш и вернуть
 
 	// Подсказки:
-	// - Используйте zt.ctx.IntConst(name) для int переменных
-	// - Используйте zt.ctx.BoolConst(name) для bool переменных
+	// - Используйте zt.Ctx.IntConst(name) для int переменных
+	// - Используйте zt.Ctx.BoolConst(name) для bool переменных
 	// - Храните переменные в zt.vars для повторного использования
 
 	if _, exists := zt.vars[expr.Name]; exists {
@@ -74,18 +81,18 @@ func (zt *Z3Translator) VisitVariable(expr *symbolic.SymbolicVariable) interface
 
 // VisitIntConstant транслирует целочисленную константу в Z3
 func (zt *Z3Translator) VisitIntConstant(expr *symbolic.IntConstant) interface{} {
-	// Создать Z3 константу с помощью zt.ctx.FromBigInt или аналогичного метода
-	return zt.ctx.FromInt(expr.Value, zt.ctx.IntSort())
+	// Создать Z3 константу с помощью zt.Ctx.FromBigInt или аналогичного метода
+	return zt.Ctx.FromInt(expr.Value, zt.Ctx.IntSort())
 }
 
 func (zt *Z3Translator) VisitFloatConstant(expr *symbolic.FloatConstant) interface{} {
-	return zt.ctx.FromFloat32(expr.Value, zt.ctx.FloatSort(8, 24))
+	return zt.Ctx.FromFloat32(expr.Value, zt.Ctx.FloatSort(8, 24))
 }
 
 // VisitBoolConstant транслирует булеву константу в Z3
 func (zt *Z3Translator) VisitBoolConstant(expr *symbolic.BoolConstant) interface{} {
-	// Использовать zt.ctx.FromBool для создания Z3 булевой константы
-	return zt.ctx.FromBool(expr.Value)
+	// Использовать zt.Ctx.FromBool для создания Z3 булевой константы
+	return zt.Ctx.FromBool(expr.Value)
 }
 
 // VisitBinaryOperation транслирует бинарную операцию в Z3
@@ -211,6 +218,35 @@ func (zt *Z3Translator) VisitBinaryOperation(expr *symbolic.BinaryOperation) int
 		case symbolic.ArrayType:
 			panic("you are doing something wrong")
 		}
+	case symbolic.INDEX:
+		switch expr.Left.Type() {
+		case symbolic.ArrayType:
+			return left.(z3.Array).Select(right.(z3.Value))
+		default:
+			panic("NOT AN ARRAY TYPE what are you doing")
+		}
+	case symbolic.FIELD_ACCESS:
+		switch expr.Left.Type() {
+		case symbolic.ObjType:
+			str := getFieldNameStr(expr.Left.String(), expr.Right.String())
+			_, err := zt.objs[str]
+			if !err {
+				zt.objs[str] = z3.Array{}
+			}
+
+			return zt.objs[str].Select(right.(z3.Value))
+		default:
+			panic("you are doing something wrong")
+		}
+	case symbolic.FIELD_ASSIGN:
+		switch expr.Left.Type() {
+		case symbolic.ArrayType:
+			bigint := big.NewInt(0)
+			zr := zt.Ctx.FromBigInt(bigint, zt.Ctx.IntSort())
+			return left.(z3.Array).Store(zr, right.(z3.Value))
+		default:
+			panic("you are doing something wrong")
+		}
 	}
 
 	// Подсказки по операциям в Z3:
@@ -274,8 +310,8 @@ func (zt *Z3Translator) VisitLogicalOperation(expr *symbolic.LogicalOperation) i
 	}
 
 	// Подсказки:
-	// - AND: zt.ctx.And(operands...)
-	// - OR: zt.ctx.Or(operands...)
+	// - AND: zt.Ctx.And(operands...)
+	// - OR: zt.Ctx.Or(operands...)
 	// - NOT: operand.Not() (для единственного операнда)
 	// - IMPLIES: antecedent.Implies(consequent)
 
@@ -293,15 +329,15 @@ func (zt *Z3Translator) VisitUnaryOperation(expr *symbolic.UnaryOperation) inter
 	case symbolic.NOT:
 		return operand.(z3.Bool).Not()
 	case symbolic.INCREMENT:
-		one := zt.ctx.FromInt(1, zt.ctx.IntSort()).(z3.Int)
+		one := zt.Ctx.FromInt(1, zt.Ctx.IntSort()).(z3.Int)
 		return operand.(z3.Int).Add(one)
 	case symbolic.DECREMENT:
-		one := zt.ctx.FromInt(1, zt.ctx.IntSort()).(z3.Int)
+		one := zt.Ctx.FromInt(1, zt.Ctx.IntSort()).(z3.Int)
 		return operand.(z3.Int).Sub(one)
 	case symbolic.MINUS:
 		// Is this bad lol?
 		value, _, _ := operand.(z3.Int).AsInt64()
-		return zt.ctx.FromInt(value*(-1), zt.ctx.IntSort()).(z3.Int)
+		return zt.Ctx.FromInt(value*(-1), zt.Ctx.IntSort()).(z3.Int)
 	}
 
 	panic("unreachable")
@@ -328,32 +364,44 @@ func (zt *Z3Translator) VisitConditional(expr *symbolic.ConditionalOperation) in
 	return cond.IfThenElse(btrue, bfalse)
 }
 
+func (zt *Z3Translator) VisitPointer(expr *symbolic.SymbolicPointer) interface{} {
+	switch expr.PointerType {
+	case symbolic.ArrayType:
+	case symbolic.ObjType:
+		return expr.Address
+	default:
+		return zt.Mem.GetPrimitive(expr).(z3.Value)
+	}
+	// why do i need THIS??
+	return 0
+}
+
 // Вспомогательные методы
 
 func (zt *Z3Translator) createZ3Array(name string, expr symbolic.SymbolicArray) z3.Value {
 	switch expr.ElType() {
 	case symbolic.BoolType:
-		zt.vars[name] = zt.ctx.FreshConst(
+		zt.vars[name] = zt.Ctx.FreshConst(
 			name,
-			zt.ctx.ArraySort(
-				zt.ctx.BoolSort(),
-				zt.ctx.BoolSort(),
+			zt.Ctx.ArraySort(
+				zt.Ctx.BoolSort(),
+				zt.Ctx.BoolSort(),
 			),
 		)
 	case symbolic.IntType:
-		zt.vars[name] = zt.ctx.FreshConst(
+		zt.vars[name] = zt.Ctx.FreshConst(
 			name,
-			zt.ctx.ArraySort(
-				zt.ctx.IntSort(),
-				zt.ctx.IntSort(),
+			zt.Ctx.ArraySort(
+				zt.Ctx.IntSort(),
+				zt.Ctx.IntSort(),
 			),
 		)
 	case symbolic.FloatType:
-		zt.vars[name] = zt.ctx.FreshConst(
+		zt.vars[name] = zt.Ctx.FreshConst(
 			name,
-			zt.ctx.ArraySort(
-				zt.ctx.FloatSort(8, 24),
-				zt.ctx.FloatSort(8, 24),
+			zt.Ctx.ArraySort(
+				zt.Ctx.FloatSort(8, 24),
+				zt.Ctx.FloatSort(8, 24),
 			),
 		)
 	default:
@@ -363,18 +411,91 @@ func (zt *Z3Translator) createZ3Array(name string, expr symbolic.SymbolicArray) 
 	return zt.vars[name]
 }
 
+func (zt *Z3Translator) VisitFieldAccess(expr *symbolic.FieldAccess) interface{} {
+	// Guard for - for example array out of bounds index expr
+	//if expr.Key == nil {
+	//	return nil
+	//}
+
+	name := getFieldName(expr.Key.String(), expr.FieldIdx)
+	index := zt.Ctx.Const(name, zt.Ctx.IntSort())
+
+	fieldName := getFieldName(expr.StructName, expr.FieldIdx)
+	_, err := zt.objs[fieldName]
+	if !err {
+		// TODO: sort can be array too
+		as := zt.Ctx.ArraySort(zt.Ctx.IntSort(), expr.Type().AsSort(zt.Ctx))
+		z := zt.Ctx.Const(expr.Obj.String(), as)
+		zt.objs[fieldName] = z.(z3.Array)
+	}
+
+	return zt.objs[fieldName].Select(index)
+}
+
+func (zt *Z3Translator) VisitFieldAssign(expr *symbolic.FieldAssign) interface{} {
+	str := getFieldName(expr.Obj.String(), expr.FieldIdx)
+	index := zt.Ctx.Const(str, zt.Ctx.IntSort())
+
+	fieldName := getFieldName(expr.StructName, expr.FieldIdx)
+	_, err := zt.objs[fieldName]
+	if !err {
+		as := zt.Ctx.ArraySort(zt.Ctx.IntSort(), expr.Type().AsSort(zt.Ctx))
+		z := zt.Ctx.Const(expr.Obj.String(), as)
+		zt.objs[fieldName] = z.(z3.Array)
+	}
+
+	visit := expr.Value.Accept(zt)
+	zt.objs[fieldName] = zt.objs[fieldName].Store(index, visit.(z3.Value))
+	return zt.objs[fieldName]
+}
+
+func (zt *Z3Translator) VisitFunction(expr *symbolic.Function) interface{} {
+	var argsSorts []z3.Sort
+	for i := range expr.Args {
+		argTy := expr.Args[i]
+		argsSorts = append(argsSorts, argTy.AsSort(zt.Ctx))
+	}
+	return zt.Ctx.FuncDecl(expr.Name, argsSorts, expr.ReturnType.AsSort(zt.Ctx))
+}
+
+func (zt *Z3Translator) VisitFunctionCall(expr *symbolic.FunctionCall) interface{} {
+	decl := zt.VisitFunction(&expr.FunctionDecl)
+	var args []z3.Value
+	for i := range expr.Args {
+		arg := expr.Args[i]
+		translatedArg := arg.Accept(zt)
+		args = append(args, translatedArg.(z3.Value))
+	}
+	return decl.(z3.FuncDecl).Apply(args...)
+}
+
+// Mangling
+func getFieldName(name string, index int) string {
+	return "index_" + name + "." + strconv.Itoa(index)
+}
+
+func getFieldNameStr(name string, field string) string {
+	return name + "." + field
+}
+
+// CreateABV Create Array of bitvectors with given bitvec size
+// Array Int → BitVec(8)
+func (zt *Z3Translator) CreateABV(bits int) z3.Sort {
+	return zt.Ctx.ArraySort(zt.Ctx.IntSort(), zt.Ctx.BVSort(bits))
+}
+
 // createZ3Variable создаёт Z3 переменную соответствующего типа
 func (zt *Z3Translator) createZ3Variable(name string, exprType symbolic.ExpressionType) z3.Value {
 	// Создать Z3 переменную на основе типа
 	switch exprType {
 	case symbolic.FloatType:
-		zt.vars[name] = zt.ctx.FreshConst(name, zt.ctx.FloatSort(8, 24))
+		zt.vars[name] = zt.Ctx.FreshConst(name, zt.Ctx.FloatSort(8, 24))
 	case symbolic.IntType:
-		zt.vars[name] = zt.ctx.FreshConst(name, zt.ctx.IntSort())
+		zt.vars[name] = zt.Ctx.FreshConst(name, zt.Ctx.IntSort())
 	case symbolic.BoolType:
-		zt.vars[name] = zt.ctx.FreshConst(name, zt.ctx.BoolSort())
+		zt.vars[name] = zt.Ctx.FreshConst(name, zt.Ctx.BoolSort())
 		//case symbolic.ArrayType:
-		//	zt.vars[name] = zt.ctx.FreshConst(name, zt.ctx.ArraySort(zt.ctx.IntSort(), zt.ctx.IntSort()))
+		//	zt.vars[name] = zt.Ctx.FreshConst(name, zt.Ctx.ArraySort(zt.Ctx.IntSort(), zt.Ctx.IntSort()))
 	default:
 		panic("unhandled default case")
 	}

@@ -3,6 +3,7 @@ package symbolic
 
 import (
 	"fmt"
+	"strconv"
 )
 
 // SymbolicExpression - базовый интерфейс для всех символьных выражений
@@ -45,6 +46,26 @@ func (sv *SymbolicVariable) String() string {
 func (sv *SymbolicVariable) Accept(visitor Visitor) interface{} {
 	return visitor.VisitVariable(sv)
 }
+
+// SymbolicPointer Typed pointer
+type SymbolicPointer struct {
+	Address     uint
+	PointerType ExpressionType
+	Expr        SymbolicExpression
+	Name        string // JUST LET ME MAKE THIS OPTIONAL IS THIS SO HARD GO
+}
+
+//func NewSymbolicPointer(address uint, pointerType ExpressionType) *SymbolicPointer {
+//	return &SymbolicPointer{address, pointerType}
+//}
+
+func (sv *SymbolicPointer) Type() ExpressionType {
+	return AddrType
+}
+
+func (sv *SymbolicPointer) String() string { return "@" + strconv.Itoa(int(sv.Address)) }
+
+func (sv *SymbolicPointer) Accept(visitor Visitor) interface{} { return visitor.VisitPointer(sv) }
 
 // SymbolicArray Symbolic array type
 type SymbolicArray struct {
@@ -167,9 +188,13 @@ type BinaryOperation struct {
 // NewBinaryOperation создаёт новую бинарную операцию
 func NewBinaryOperation(left, right SymbolicExpression, op BinaryOperator) *BinaryOperation {
 	// Создать новую бинарную операцию и проверить совместимость типов
-	if left.Type() != right.Type() {
-		return nil
+	if left.Type() != ObjType && left.Type() != ArrayType {
+		// ^ Do not check if we doing field or indexing magic tricks
+		if left.Type() != right.Type() {
+			return nil
+		}
 	}
+
 	return &BinaryOperation{Left: left, Right: right, Operator: op}
 }
 
@@ -288,6 +313,11 @@ const (
 	LE // меньше или равно
 	GT // больше
 	GE // больше или равно
+
+	// IDK if we should include this as a BINOP but...
+	FIELD_ASSIGN
+	FIELD_ACCESS
+	INDEX
 )
 
 // String возвращает строковое представление оператора
@@ -466,9 +496,118 @@ func NewConditionalOperation(condition SymbolicExpression, btrue []SymbolicExpre
 	return &ConditionalOperation{condition, btrue, bfalse}
 }
 
+type FieldAccess struct {
+	Obj        SymbolicExpression
+	FieldIdx   int
+	Key        SymbolicExpression
+	StructName string
+	Ty         ExpressionType
+}
+
+func NewFieldAccess(obj SymbolicExpression, Idx int, key SymbolicExpression, structName string, ty ExpressionType) *FieldAccess {
+	return &FieldAccess{
+		Obj:        obj,
+		FieldIdx:   Idx,
+		Key:        key,
+		StructName: structName,
+		Ty:         ty,
+	}
+}
+
+func (fa *FieldAccess) Type() ExpressionType {
+	return fa.Obj.Type()
+}
+
+func (fa *FieldAccess) String() string {
+	return "(" + fa.Obj.String() + ")"
+}
+
+func (fa *FieldAccess) Accept(visitor Visitor) interface{} {
+	return visitor.VisitFieldAccess(fa)
+}
+
+type FieldAssign struct {
+	Obj        SymbolicExpression
+	FieldIdx   int
+	Value      SymbolicExpression
+	StructName string
+}
+
+func NewFieldAssign(obj SymbolicExpression, Idx int, v SymbolicExpression, structName string) *FieldAssign {
+	return &FieldAssign{
+		Obj:        obj,
+		FieldIdx:   Idx,
+		Value:      v,
+		StructName: structName,
+	}
+}
+
+func (fa *FieldAssign) Type() ExpressionType {
+	return fa.Value.Type()
+}
+
+func (fa *FieldAssign) String() string {
+	return "(" + fa.Obj.String() + "." + strconv.Itoa(fa.FieldIdx) + "=" + fa.Value.String() + ")"
+}
+
+func (fa *FieldAssign) Accept(visitor Visitor) interface{} {
+	return visitor.VisitFieldAssign(fa)
+}
+
+type Function struct {
+	Name       string
+	Args       []ExpressionType
+	ReturnType ExpressionType
+}
+
+func NewFunction(name string, argsTypes []ExpressionType, retTy ExpressionType) *Function {
+	return &Function{
+		Name:       name,
+		Args:       argsTypes,
+		ReturnType: retTy,
+	}
+}
+
+func (fu *Function) Type() ExpressionType {
+	return FuncType
+}
+
+func (fu *Function) String() string {
+	return "(" + fu.Name + " -> " + fu.ReturnType.String() + ")"
+}
+
+func (fu *Function) Accept(visitor Visitor) interface{} {
+	return visitor.VisitFunction(fu)
+}
+
+type FunctionCall struct {
+	FunctionDecl Function
+	Args         []SymbolicExpression
+}
+
+func NewFunctionCall(function Function, args []SymbolicExpression) *FunctionCall {
+	return &FunctionCall{
+		FunctionDecl: function,
+		Args:         args,
+	}
+}
+
+func (fc *FunctionCall) Type() ExpressionType {
+	return fc.FunctionDecl.ReturnType
+}
+
+func (fc *FunctionCall) String() string {
+	return "(" + fc.FunctionDecl.Name + "(Arg1, Arg2, ..., ArgN))"
+}
+
+func (fc *FunctionCall) Accept(visitor Visitor) interface{} {
+	return visitor.VisitFunctionCall(fc)
+}
+
 // TODO: Добавьте дополнительные типы выражений по необходимости:
 // -[x] SymbolicArray
 // -[x] UnaryOperation (унарные операции: -x, !x)
 // -[x] ArrayAccess (доступ к элементам массива: arr[index])
-// - FunctionCall (вызовы функций: f(x, y))
-// - ConditionalExpression (тернарный оператор: condition ? true_expr : false_expr)
+// -[x] FunctionCall (вызовы функций: f(x, y))
+// -[x] ConditionalExpression (тернарный оператор: condition ? true_expr : false_expr)
+// -[x] Pointers (
