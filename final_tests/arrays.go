@@ -1,4 +1,4 @@
-package final_tests
+package main
 
 func DefaultBooleanValues() []bool {
 	array := make([]bool, 3)

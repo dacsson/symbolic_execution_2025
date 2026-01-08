@@ -1,4 +1,4 @@
-package final_tests
+package main
 
 func CompareWithDiv(a, b float64) float64 {
 	z := a + 0.5

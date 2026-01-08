@@ -1,4 +1,4 @@
-package final_tests
+package main
 
 func Factorial(n int) int {
 	if n < 0 {

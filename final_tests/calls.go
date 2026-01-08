@@ -1,4 +1,4 @@
-package final_tests
+package main
 
 type InvokeClass struct {
 	Value int

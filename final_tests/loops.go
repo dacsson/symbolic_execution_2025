@@ -1,4 +1,4 @@
-package final_tests
+package main
 
 func LoopWithConcreteBound(n int) int {
 	result := 0

@@ -1,4 +1,4 @@
-package final_tests
+package main
 
 func Complement(x int) bool {
 	return ^x == 1
