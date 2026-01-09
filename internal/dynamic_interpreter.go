@@ -430,13 +430,7 @@ func (interpreter *Interpreter) interpretMakeSlice(instr *ssa.MakeSlice) []*Inte
 		length = 10
 	}
 
-	// TODO: implement type checking
-	var elType symbolic.ExpressionType = symbolic.IntType
-	// if instr.Type().Underlying().(*types.Basic) == types.Int {
-	// 	elType = symbolic.AddrType
-	// } else {
-	// 	elType = symbolic.StringType
-	// }
+	var elType symbolic.ExpressionType = ssaTypeToSymbolicType(instr.Type().(*types.Slice).Elem())
 
 	ref := interpreter.Heap.Allocate(symbolic.ArrayType, "dummy", symbolic.NewSymbolicArray("", elType, length))
 
@@ -456,8 +450,7 @@ func (interpreter *Interpreter) interpretSlice(instr *ssa.Slice) []*Interpreter 
 	var result symbolic.SymbolicExpression
 	if ref, ok := base.(*symbolic.SymbolicPointer); ok {
 
-		// TODO: check elType type properly
-		elType := symbolic.IntType
+		var elType symbolic.ExpressionType = ssaTypeToSymbolicType(instr.Type().(*types.Slice).Elem())
 
 		sliceRef := interpreter.Heap.Allocate(symbolic.ArrayType, "slice", symbolic.NewSymbolicArray("", elType, 0))
 		interpreter.Heap.CreateAlias(ref, sliceRef.Address)
@@ -603,8 +596,7 @@ func (interpreter *Interpreter) interpretRecursiveStruct(instr *ssa.Alloc) []*In
 	dummy_str := symbolic.NewSymbolicVariable(instr.Name(), symbolic.ObjType)
 	ref := interpreter.Heap.Allocate(symbolic.ObjType, instr.Name(), dummy_str)
 
-	// TODO: check elType type properly
-	elType := symbolic.IntType
+	elType := ssaTypeToSymbolicType(instr.Type())
 	childrenRef := interpreter.Heap.AllocateArray(instr.Name(), elType, 2)
 
 	interpreter.Heap.AssignField(ref, 0, symbolic.NewIntConstant(0))
@@ -1080,8 +1072,7 @@ func (interpreter *Interpreter) handleBuiltinCall(instr *ssa.Call, builtin *ssa.
 	case "make":
 		if len(args) >= 2 {
 			if sizeConst, ok := args[1].(*symbolic.IntConstant); ok {
-				// TODO: check elType type properly
-				elType := symbolic.IntType
+				elType := ssaTypeToSymbolicType(instr.Type())
 				ref := interpreter.Heap.AllocateArray(instr.Name(), elType, int(sizeConst.Value))
 				result = ref
 			}
@@ -1292,8 +1283,7 @@ func (interpreter *Interpreter) interpretCompositeLit(instr *ssa.Alloc) []*Inter
 		matches := re.FindStringSubmatch(typeStr)
 		if len(matches) > 1 {
 			if size, err := strconv.Atoi(matches[1]); err == nil {
-				// TODO: check elType real type
-				elType := symbolic.IntType
+				var elType symbolic.ExpressionType = ssaTypeToSymbolicType(instr.Type().(*types.Slice).Elem())
 				ref = interpreter.Heap.AllocateArray(instr.Name(), elType, size)
 				interpreter.Heap.SetArrayLength(uint(size), ref)
 			}
