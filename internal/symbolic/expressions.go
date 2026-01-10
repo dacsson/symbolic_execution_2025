@@ -55,9 +55,10 @@ type SymbolicPointer struct {
 	Name        string // JUST LET ME MAKE THIS OPTIONAL IS THIS SO HARD GO
 }
 
-//func NewSymbolicPointer(address uint, pointerType ExpressionType) *SymbolicPointer {
-//	return &SymbolicPointer{address, pointerType}
-//}
+func NewSymbolicPointer(address uint, pointerType ExpressionType) *SymbolicPointer {
+	dummy := NewSymbolicVariable("dummy", pointerType)
+	return &SymbolicPointer{address, pointerType, dummy, ""}
+}
 
 func (sv *SymbolicPointer) Type() ExpressionType {
 	return AddrType
@@ -604,6 +605,54 @@ func (fc *FunctionCall) Accept(visitor Visitor) interface{} {
 	return visitor.VisitFunctionCall(fc)
 }
 
+type FieldAddr struct {
+	Ptr        *SymbolicPointer
+	FieldIndex int
+}
+
+func NewFieldAddr(ptr *SymbolicPointer, fieldIndex int) *FieldAddr {
+	return &FieldAddr{
+		Ptr:        ptr,
+		FieldIndex: fieldIndex,
+	}
+}
+
+func (fa *FieldAddr) Type() ExpressionType {
+	return AddrType
+}
+
+func (fa *FieldAddr) String() string {
+	return fmt.Sprintf("&%s.field[%d]", fa.Ptr.String(), fa.FieldIndex)
+}
+
+func (fa *FieldAddr) Accept(visitor Visitor) interface{} {
+	return visitor.VisitFieldAddr(fa)
+}
+
+type IndexAddr struct {
+	Ptr   *SymbolicPointer
+	Index int
+}
+
+func NewIndexAddr(ptr *SymbolicPointer, index int) *IndexAddr {
+	return &IndexAddr{
+		Ptr:   ptr,
+		Index: index,
+	}
+}
+
+func (ia *IndexAddr) Type() ExpressionType {
+	return AddrType
+}
+
+func (ia *IndexAddr) String() string {
+	return fmt.Sprintf("&%s[%d]", ia.Ptr.String(), ia.Index)
+}
+
+func (ia *IndexAddr) Accept(visitor Visitor) interface{} {
+	return visitor.VisitIndexAddr(ia)
+}
+
 // TODO: Добавьте дополнительные типы выражений по необходимости:
 // -[x] SymbolicArray
 // -[x] UnaryOperation (унарные операции: -x, !x)
@@ -611,3 +660,4 @@ func (fc *FunctionCall) Accept(visitor Visitor) interface{} {
 // -[x] FunctionCall (вызовы функций: f(x, y))
 // -[x] ConditionalExpression (тернарный оператор: condition ? true_expr : false_expr)
 // -[x] Pointers (
+// -[x] FieldPointer and IndexPointer (мимикрируем под SSA, просто повторяем)

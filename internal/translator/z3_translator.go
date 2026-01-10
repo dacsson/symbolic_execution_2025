@@ -469,6 +469,24 @@ func (zt *Z3Translator) VisitFunctionCall(expr *symbolic.FunctionCall) interface
 	return decl.(z3.FuncDecl).Apply(args...)
 }
 
+func (zt *Z3Translator) VisitFieldAddr(expr *symbolic.FieldAddr) any {
+	base := expr.Ptr.Accept(zt)
+	if base == nil {
+		return nil
+	}
+
+	return zt.Ctx.FromInt(int64(int(expr.Ptr.Address)*1000+expr.FieldIndex), zt.Ctx.IntSort())
+}
+
+func (zt *Z3Translator) VisitIndexAddr(expr *symbolic.IndexAddr) any {
+	base := expr.Ptr.Accept(zt)
+	if base == nil {
+		return nil
+	}
+
+	return zt.Ctx.FromInt(int64(int(expr.Ptr.Address)*1000+expr.Index), zt.Ctx.IntSort())
+}
+
 // Mangling
 func getFieldName(name string, index int) string {
 	return "index_" + name + "." + strconv.Itoa(index)

@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"log"
 
-	"symbolic-execution-course/internal/ssa"
+	"symbolic-execution-course/internal/ssabuilder"
 )
 
 func main() {
@@ -25,7 +25,7 @@ func testFunction(x int) int {
 `
 
 	// Создаём builder для SSA
-	builder := ssa.NewBuilder()
+	builder := ssabuilder.NewBuilder()
 
 	// Строим SSA из исходного кода
 	graph, err := builder.ParseAndBuildSSA(source, "testFunction")

@@ -15,6 +15,8 @@ type Visitor interface {
 	VisitPointer(expr *SymbolicPointer) interface{}
 	VisitFieldAccess(expr *FieldAccess) interface{}
 	VisitFieldAssign(expr *FieldAssign) interface{}
+	VisitIndexAddr(expr *IndexAddr) interface{}
+	VisitFieldAddr(expr *FieldAddr) interface{}
 
 	// funcs
 	VisitFunction(fu *Function) interface{}
