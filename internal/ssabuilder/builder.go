@@ -1,5 +1,5 @@
-// Package ssa предоставляет функции для построения SSA представления
-package ssa
+// Package ssabuilder предоставляет функции для построения SSA представления
+package ssabuilder
 
 import (
 	"fmt"
@@ -37,6 +37,7 @@ func (b *Builder) ParseAndBuildSSA(source string, funcName string) (*ssa.Functio
 	fmt.Println("#=== 1. Парсинг исходного кода с помощью go/parser ===#")
 	file, err := parser.ParseFile(fset, "main.go", source, parser.ParseComments)
 	if err != nil {
+		fmt.Println("Ошибка при парсинге исходного кода:", err)
 		panic("parser error")
 	}
 	files := []*ast.File{file}
